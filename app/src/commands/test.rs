@@ -42,7 +42,17 @@ pub(crate) async fn download(
         filter: VideoSearchOptions::Audio,
         ..Default::default()
     };
-    let video = Video::new_with_options(url, video_options).unwrap();
+
+    let video = match Video::new_with_options(url, video_options) {
+        Ok(v) => v,
+        Err(_) => {
+            let content = "指定されたURLの動画は見つかりませんでした...";
+            let reply = CreateReply::default().content(content);
+            message.edit(ctx, reply).await?;
+            return Ok(());
+        }
+    };
+
     let details = video.get_info().await.unwrap().video_details;
     println!("{:?}", details);
 
