@@ -5,6 +5,14 @@ type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
 #[poise::command(slash_command, prefix_command)]
+async fn register(ctx: Context<'_>, #[flag] global: bool) -> Result<(), Error> {
+    ctx.say(format!("Registering commands... Global is {}", global))
+        .await?;
+    poise::builtins::register_application_commands(ctx, global).await?;
+    Ok(())
+}
+
+#[poise::command(slash_command, prefix_command)]
 async fn age(
     ctx: Context<'_>,
     #[description = "Selected user"] user: Option<serenity::User>,
@@ -16,6 +24,12 @@ async fn age(
     Ok(())
 }
 
+#[poise::command(slash_command, prefix_command)]
+async fn test(ctx: Context<'_>) -> Result<(), Error> {
+    ctx.say("This is a test command".to_string()).await?;
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() {
     let token = std::env::var("DISCORD_TOKEN").expect("DISCORD_TOKEN not found in environment");
@@ -23,7 +37,11 @@ async fn main() {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![age()],
+            commands: vec![age(), test(), register()],
+            prefix_options: poise::PrefixFrameworkOptions {
+                prefix: Some("::".to_string()),
+                ..Default::default()
+            },
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
