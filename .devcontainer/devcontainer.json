@@ -1,8 +1,10 @@
 {
-    "dockerComposeFile": ["docker-compose.yml"],
-    "service": "rust_devcontainer",
-    "workspaceFolder": "/workspace",
-    "customizations": {
+	"dockerComposeFile": [
+		"docker-compose.yml"
+	],
+	"service": "rust_devcontainer",
+	"workspaceFolder": "/workspace",
+	"customizations": {
 		"vscode": {
 			"settings": {
 				"workbench.colorCustomizations": {
@@ -11,7 +13,10 @@
 					"activityBar.background": "#4493f8",
 					"activityBar.foreground": "#ffffff"
 				}
-			}
+			},
+			"extensions": [
+				"nyxiative.rust-and-friends"
+			]
 		}
 	}
-  }
+}
