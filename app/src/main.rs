@@ -1,91 +1,42 @@
-use std::env;
+use poise::serenity_prelude as serenity;
 
-use serenity::async_trait;
-use serenity::builder::{CreateAttachment, CreateEmbed, CreateEmbedFooter, CreateMessage};
-use serenity::model::channel::Message;
-use serenity::model::gateway::Ready;
-use serenity::model::Timestamp;
-use serenity::prelude::*;
-use serenity::utils::MessageBuilder;
+struct Data {}
+type Error = Box<dyn std::error::Error + Send + Sync>;
+type Context<'a> = poise::Context<'a, Data, Error>;
 
-struct Handler;
+#[poise::command(slash_command, prefix_command)]
+async fn age(
+    ctx: Context<'_>,
+    #[description = "Selected user"] user: Option<serenity::User>,
+) -> Result<(), Error> {
+    let u = user.as_ref().unwrap_or_else(|| ctx.author());
+    let response = format!("{}'s account was created at {}", u.name, u.created_at());
+    ctx.say(response).await?;
 
-#[async_trait]
-impl EventHandler for Handler {
-    async fn message(&self, ctx: Context, msg: Message) {
-        if msg.content == "!ping" {
-            let channel = match msg.channel_id.to_channel(&ctx).await {
-                Ok(channel) => channel,
-                Err(why) => {
-                    println!("Error getting channel: {:?}", why);
-                    return;
-                }
-            };
-
-            let response = MessageBuilder::new()
-                .push("User ")
-                .mention(&msg.author)
-                .push(" used the ping command in the ")
-                .mention(&channel)
-                .push(" channel")
-                .build();
-
-            if let Err(why) = msg.channel_id.say(&ctx.http, &response).await {
-                println!("Error sending message: {:?}", why);
-            }
-        } else if msg.content == "!messageme" {
-            // not working??
-            let builder = CreateMessage::new().content("Hello!");
-            let dm = msg.author.dm(&ctx, builder).await;
-
-            if let Err(why) = dm {
-                println!("Error sending message: {:?}", why);
-            }
-        } else if msg.content == "!hello" {
-            let footer = CreateEmbedFooter::new("This is footer!");
-            let embed = CreateEmbed::new()
-                .title("Embed Title")
-                .description("Embed Description!")
-                .fields(vec![
-                    ("Field 1", "Value 1", true),
-                    ("Field 2", "Value 2", false),
-                    ("Field 3", "Value 3", true),
-                ])
-                .footer(footer)
-                .timestamp(Timestamp::now());
-
-            let builder = CreateMessage::new().content("Hello, embed!").embed(embed);
-            let msg = msg.channel_id.send_message(&ctx.http, builder).await;
-
-            if let Err(why) = msg {
-                println!("Error sending message: {:?}", why);
-            }
-        }
-    }
-
-    async fn ready(&self, _: Context, ready: Ready) {
-        println!("{} is connected!", ready.user.name);
-    }
+    Ok(())
 }
 
 #[tokio::main]
 async fn main() {
-    let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
+    let token = std::env::var("DISCORD_TOKEN").expect("DISCORD_TOKEN not found in environment");
+    let intents = serenity::GatewayIntents::non_privileged();
 
-    let intents = GatewayIntents::GUILD_MESSAGES
-        | GatewayIntents::MESSAGE_CONTENT
-        | GatewayIntents::DIRECT_MESSAGES;
+    let framework = poise::Framework::builder()
+        .options(poise::FrameworkOptions {
+            commands: vec![age()],
+            ..Default::default()
+        })
+        .setup(|ctx, _ready, framework| {
+            Box::pin(async move {
+                poise::builtins::register_globally(ctx, &framework.options().commands).await?;
+                Ok(Data {})
+            })
+        })
+        .build();
 
-    let mut client = Client::builder(token, intents)
-        .event_handler(Handler)
-        .await
-        .expect("Error creating client");
+    let client = serenity::ClientBuilder::new(token, intents)
+        .framework(framework)
+        .await;
 
-    if let Err(why) = client.start().await {
-        print!("Client error: {:?}", why);
-    }
+    client.unwrap().start().await.unwrap();
 }
-
-// fn main() {
-//     println!("Hello, world!");
-// }
