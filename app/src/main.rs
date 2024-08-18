@@ -16,6 +16,7 @@ async fn main() {
             commands: vec![
                 commands::test::age(),
                 commands::test::test(),
+                commands::test::download(),
                 commands::utility::register(),
                 commands::utility::help(),
             ],

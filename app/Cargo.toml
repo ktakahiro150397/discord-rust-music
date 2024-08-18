@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+async-std = "1.12.0"
 poise = "0.6.1"
 serenity ={version = "0.12.2", default-features=false,features = ["client", "gateway", "rustls_backend", "model"] }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
