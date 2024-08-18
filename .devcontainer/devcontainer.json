@@ -15,7 +15,8 @@
 				}
 			},
 			"extensions": [
-				"nyxiative.rust-and-friends"
+				"nyxiative.rust-and-friends",
+				"rust-lang.rust-analyzer"
 			]
 		}
 	}

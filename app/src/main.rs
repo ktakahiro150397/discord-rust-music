@@ -1,6 +1,7 @@
 use std::env;
 
 use serenity::async_trait;
+use serenity::builder::CreateMessage;
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
@@ -12,6 +13,14 @@ impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
         if msg.content == "!ping" {
             if let Err(why) = msg.channel_id.say(&ctx.http, "Pong!").await {
+                println!("Error sending message: {:?}", why);
+            }
+        } else if msg.content == "!messageme" {
+            // not working??
+            let builder = CreateMessage::new().content("Hello!");
+            let dm = msg.author.dm(&ctx, builder).await;
+
+            if let Err(why) = dm {
                 println!("Error sending message: {:?}", why);
             }
         }
