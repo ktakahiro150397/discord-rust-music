@@ -5,6 +5,7 @@ use serenity::builder::CreateMessage;
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
+use serenity::utils::MessageBuilder;
 
 struct Handler;
 
@@ -12,7 +13,23 @@ struct Handler;
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
         if msg.content == "!ping" {
-            if let Err(why) = msg.channel_id.say(&ctx.http, "Pong!").await {
+            let channel = match msg.channel_id.to_channel(&ctx).await {
+                Ok(channel) => channel,
+                Err(why) => {
+                    println!("Error getting channel: {:?}", why);
+                    return;
+                }
+            };
+
+            let response = MessageBuilder::new()
+                .push("User ")
+                .mention(&msg.author)
+                .push(" used the ping command in the ")
+                .mention(&channel)
+                .push(" channel")
+                .build();
+
+            if let Err(why) = msg.channel_id.say(&ctx.http, &response).await {
                 println!("Error sending message: {:?}", why);
             }
         } else if msg.content == "!messageme" {
