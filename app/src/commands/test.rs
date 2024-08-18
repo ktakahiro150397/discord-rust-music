@@ -1,7 +1,8 @@
 use crate::{Context, Error};
-use async_std::task;
+// use async_std::task;
 use poise::{serenity_prelude as serenity, CreateReply};
-use std::time::Duration;
+use rusty_ytdl::{Video, VideoOptions, VideoSearchOptions};
+// use std::time::Duration;
 
 /// ユーザーのアカウント作成日時を表示します。
 #[poise::command(slash_command, prefix_command, category = "Test")]
@@ -23,11 +24,13 @@ pub(crate) async fn test(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
+/// 指定のURLからYoutubeデータをダウンロードします。
 #[poise::command(slash_command, category = "Test")]
 pub(crate) async fn download(
     ctx: Context<'_>,
     #[description = "ダウンロードするURL"] url: String,
 ) -> Result<(), Error> {
+    // 応答を遅らせる
     ctx.defer().await?;
 
     let message = ctx
@@ -35,15 +38,21 @@ pub(crate) async fn download(
         .await?
         .clone();
 
-    // Simulate a download
-    task::sleep(Duration::from_secs(5)).await;
+    let video_options = VideoOptions {
+        filter: VideoSearchOptions::Audio,
+        ..Default::default()
+    };
+    let video = Video::new_with_options(url, video_options).unwrap();
+    let details = video.get_info().await.unwrap().video_details;
+    println!("{:?}", details);
 
-    message
-        .edit(
-            ctx,
-            CreateReply::default().content(format!("Downloaded {}!", url)),
-        )
-        .await?;
+    let file_name = format!("temp/{}.mp3", details.video_id);
+    let path = std::path::Path::new(&file_name);
+    video.download(path).await.unwrap();
+
+    let reply =
+        CreateReply::default().content(format!("Video downloaded {:?}", path.to_str().unwrap()));
+    message.edit(ctx, reply).await?;
 
     Ok(())
 }

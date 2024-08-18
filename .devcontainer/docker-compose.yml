@@ -1,6 +1,8 @@
 services:
   rust_devcontainer:
-    image: rust:1.80.1-bookworm
+    build:
+      context: ../
+      dockerfile: .devcontainer/Dockerfile
     restart: always
     tty: true
     volumes:
