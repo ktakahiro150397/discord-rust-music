@@ -1,9 +1,10 @@
 use std::env;
 
 use serenity::async_trait;
-use serenity::builder::CreateMessage;
+use serenity::builder::{CreateAttachment, CreateEmbed, CreateEmbedFooter, CreateMessage};
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
+use serenity::model::Timestamp;
 use serenity::prelude::*;
 use serenity::utils::MessageBuilder;
 
@@ -38,6 +39,25 @@ impl EventHandler for Handler {
             let dm = msg.author.dm(&ctx, builder).await;
 
             if let Err(why) = dm {
+                println!("Error sending message: {:?}", why);
+            }
+        } else if msg.content == "!hello" {
+            let footer = CreateEmbedFooter::new("This is footer!");
+            let embed = CreateEmbed::new()
+                .title("Embed Title")
+                .description("Embed Description!")
+                .fields(vec![
+                    ("Field 1", "Value 1", true),
+                    ("Field 2", "Value 2", false),
+                    ("Field 3", "Value 3", true),
+                ])
+                .footer(footer)
+                .timestamp(Timestamp::now());
+
+            let builder = CreateMessage::new().content("Hello, embed!").embed(embed);
+            let msg = msg.channel_id.send_message(&ctx.http, builder).await;
+
+            if let Err(why) = msg {
                 println!("Error sending message: {:?}", why);
             }
         }
