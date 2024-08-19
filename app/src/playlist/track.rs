@@ -18,8 +18,11 @@ impl Track {
     }
 
     pub async fn from_youtube_url(url: &str) -> Result<Self, TrackError> {
-        Err(TrackError::NotFound)
-        // std::unimplemented!("Not implemented yet");
+        // TODO : Check Youtube URL
+        // Download
+        // Return instance
+
+        std::unimplemented!("Not implemented yet");
 
         // if true {
         //     return Err(TrackError::NotFound);

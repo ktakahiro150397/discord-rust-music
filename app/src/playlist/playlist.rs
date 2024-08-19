@@ -12,8 +12,4 @@ impl PlayList {
     pub fn add(&mut self, track: Track) {
         self.songs.push(track);
     }
-
-    pub fn remove(&mut self, index: usize) {
-        self.songs.remove(index);
-    }
 }
