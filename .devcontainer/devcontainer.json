@@ -1,28 +1,21 @@
 {
-	"dockerComposeFile": [
-		"docker-compose.yml"
-	],
-	"settings": {
-		"files.watcherExclude": {
-			"**/target/**": true
-		}
-	},
-	"service": "rust_devcontainer",
-	"workspaceFolder": "/workspace",
-	"customizations": {
-		"vscode": {
-			"settings": {
-				"workbench.colorCustomizations": {
-					"titleBar.activeBackground": "#4493f8",
-					"titleBar.activeForeground": "#ffffff",
-					"activityBar.background": "#4493f8",
-					"activityBar.foreground": "#ffffff"
-				}
-			},
-			"extensions": [
-				"nyxiative.rust-and-friends",
-				"rust-lang.rust-analyzer"
-			]
-		}
-	}
+  "dockerComposeFile": ["docker-compose.yml"],
+  "service": "rust_devcontainer",
+  "workspaceFolder": "/workspace",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "workbench.colorCustomizations": {
+          "titleBar.activeBackground": "#4493f8",
+          "titleBar.activeForeground": "#ffffff",
+          "activityBar.background": "#4493f8",
+          "activityBar.foreground": "#ffffff"
+        },
+        "files.watcherExclude": {
+          "**/target/**": true
+        }
+      },
+      "extensions": ["nyxiative.rust-and-friends", "rust-lang.rust-analyzer"]
+    }
+  }
 }
