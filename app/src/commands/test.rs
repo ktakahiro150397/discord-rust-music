@@ -56,6 +56,11 @@ pub(crate) async fn download(
     let details = video.get_info().await.unwrap().video_details;
     println!("{:?}", details);
 
+    let folder = std::path::Path::new("temp");
+    if !folder.exists() {
+        std::fs::create_dir(folder).unwrap();
+    }
+
     let file_name = format!("temp/{}.mp3", details.video_id);
     let path = std::path::Path::new(&file_name);
     video.download(path).await.unwrap();
