@@ -4,6 +4,9 @@ use poise::{serenity_prelude as serenity, CreateReply};
 use rusty_ytdl::{Video, VideoOptions, VideoSearchOptions};
 // use std::time::Duration;
 
+use super::super::playlist::playlist;
+use super::super::playlist::track;
+
 /// ユーザーのアカウント作成日時を表示します。
 #[poise::command(slash_command, prefix_command, category = "Test")]
 pub(crate) async fn age(
@@ -68,6 +71,37 @@ pub(crate) async fn download(
     let reply =
         CreateReply::default().content(format!("Video downloaded {:?}", path.to_str().unwrap()));
     message.edit(ctx, reply).await?;
+
+    Ok(())
+}
+
+/// プレイリストインスタンステスト
+#[poise::command(slash_command, category = "Test")]
+pub(crate) async fn playlist(ctx: Context<'_>) -> Result<(), Error> {
+    // プレイリストを作成
+    let mut playlist = playlist::PlayList::new();
+
+    // 追加するトラック
+    let track = track::Track::new("Test", "https://test.video.com", "".into());
+
+    // トラック追加
+    playlist.add(track);
+
+    let track =
+        match track::Track::from_youtube_url("https://www.youtube.com/watch?v=AsnMofieWkQ").await {
+            Ok(t) => t,
+            Err(e) => {
+                println!("Error: {}", e);
+                ctx.say(format!("Error: {}", e)).await?;
+                return Ok(());
+            }
+        };
+
+    // トラック追加
+    playlist.add(track);
+
+    ctx.say(format!("Title is {}", playlist.songs[1].title))
+        .await?;
 
     Ok(())
 }

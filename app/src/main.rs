@@ -1,6 +1,7 @@
 use poise::serenity_prelude as serenity;
 
 mod commands;
+mod playlist;
 
 struct Data {}
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -17,6 +18,7 @@ async fn main() {
                 commands::test::age(),
                 commands::test::test(),
                 commands::test::download(),
+                commands::test::playlist(),
                 commands::utility::register(),
                 commands::utility::help(),
             ],
