@@ -1,7 +1,9 @@
+use rusty_ytdl::{Video, VideoOptions, VideoSearchOptions};
 use std::fmt;
 use std::path::PathBuf;
 
 /// キューに追加されるトラック情報
+#[derive(Debug)]
 pub struct Track {
     pub title: String,
     source_url: String,
@@ -17,38 +19,62 @@ impl Track {
         }
     }
 
-    pub async fn from_youtube_url(url: &str) -> Result<Self, TrackError> {
-        // TODO : Check Youtube URL
-        // Download
-        // Return instance
+    pub async fn from_youtube_url(temp_path: &PathBuf, url: &str) -> Result<Self, TrackError> {
+        // URLを確認
+        let video = match Video::new_with_options(
+            url,
+            VideoOptions {
+                filter: VideoSearchOptions::Audio,
+                ..Default::default()
+            },
+        ) {
+            Ok(v) => v,
+            Err(_) => {
+                // URLが見つからなかった
+                return Err(TrackError::NotFound);
+            }
+        };
 
-        std::unimplemented!("Not implemented yet");
+        // 動画情報を取得
+        let video_detail = match video.get_info().await {
+            Ok(v) => v.video_details,
+            Err(_) => {
+                // 動画情報が取得できなかった
+                return Err(TrackError::FailedToRetrieveInfo);
+            }
+        };
 
-        // if true {
-        //     return Err(TrackError::NotFound);
-        // }
+        // ダウンロード
+        match video.download(temp_path).await {
+            Err(_) => {
+                // ダウンロードに失敗
+                return Err(TrackError::FailedToDownload);
+            }
+            _ => {}
+        };
 
-        // Ok(Self {
-        //     title: "test".to_string(),
-        //     source_url: url.to_string(),
-        //     file_path: PathBuf::from("test"),
-        // })
+        // トラック情報を返す
+        Ok(Self {
+            title: video_detail.title,
+            source_url: url.to_string(),
+            file_path: temp_path.clone(),
+        })
     }
 }
 
 #[derive(Debug)]
 pub enum TrackError {
     NotFound,
-    Forbidden,
-    Unexpected,
+    FailedToDownload,
+    FailedToRetrieveInfo,
 }
 
 impl fmt::Display for TrackError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TrackError::NotFound => write!(f, "Track not found"),
-            TrackError::Forbidden => write!(f, "Track is forbidden"),
-            TrackError::Unexpected => write!(f, "Unexpected error"),
+            TrackError::NotFound => write!(f, "URLが見つかりませんでした。"),
+            TrackError::FailedToDownload => write!(f, "ダウンロードに失敗しました。"),
+            TrackError::FailedToRetrieveInfo => write!(f, "動画情報の取得に失敗しました。"),
         }
     }
 }

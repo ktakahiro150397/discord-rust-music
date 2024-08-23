@@ -87,18 +87,27 @@ pub(crate) async fn playlist(ctx: Context<'_>) -> Result<(), Error> {
     // トラック追加
     playlist.add(track);
 
-    let track =
-        match track::Track::from_youtube_url("https://www.youtube.com/watch?v=AsnMofieWkQ").await {
-            Ok(t) => t,
-            Err(e) => {
-                println!("Error: {}", e);
-                ctx.say(format!("Error: {}", e)).await?;
-                return Ok(());
-            }
-        };
+    // 一時ファイルパス
+    let temp_path = std::path::PathBuf::from("temp");
+    let track = match track::Track::from_youtube_url(
+        &temp_path,
+        "https://www.youtube.com/watch?v=AsnMofieWkQ",
+    )
+    .await
+    {
+        Ok(t) => t,
+        Err(e) => {
+            println!("Error: {}", e);
+            ctx.say(format!("Error: {}", e)).await?;
+            return Ok(());
+        }
+    };
+    println!("{:?}", track);
 
     // トラック追加
     playlist.add(track);
+
+    println!("{:?}", playlist);
 
     ctx.say(format!("Title is {}", playlist.songs[1].title))
         .await?;

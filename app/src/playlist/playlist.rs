@@ -1,5 +1,6 @@
 use super::track::Track;
 
+#[derive(Debug)]
 pub(crate) struct PlayList {
     pub songs: Vec<Track>,
 }
