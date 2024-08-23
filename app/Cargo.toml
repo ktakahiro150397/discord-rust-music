@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 async-std = "1.12.0"
+dotenvy = "0.15.7"
 poise = "0.6.1"
 rustube = "0.6.0"
 rusty_ytdl = "0.7.4"

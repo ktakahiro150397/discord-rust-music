@@ -1,4 +1,6 @@
+use dotenvy::dotenv;
 use poise::serenity_prelude as serenity;
+use std::env;
 
 mod commands;
 mod playlist;
@@ -9,6 +11,8 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 
 #[tokio::main]
 async fn main() {
+    dotenv().expect(".env file not found!");
+
     let token = std::env::var("DISCORD_TOKEN").expect("DISCORD_TOKEN not found in environment");
     let intents = serenity::GatewayIntents::non_privileged();
 

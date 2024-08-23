@@ -8,7 +8,7 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug",
-            "program": "${workspaceRoot}/app/target/debug/app",
+            "program": "${workspaceRoot}/app/target/debug/app.exe",
             "args": [],
             "cwd": "${workspaceRoot}/app/target/debug/",
             "sourceLanguages": [
