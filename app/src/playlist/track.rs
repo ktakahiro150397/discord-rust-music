@@ -1,7 +1,9 @@
 use rusty_ytdl::{Video, VideoOptions, VideoSearchOptions};
+use serenity::model::error;
 use std::env::current_dir;
 use std::fmt;
 use std::path::PathBuf;
+use tracing::{error, info_span, trace, trace_span, Instrument};
 
 /// キューに追加されるトラック情報
 #[derive(Debug)]
@@ -20,6 +22,7 @@ impl Track {
         }
     }
 
+    #[tracing::instrument]
     pub async fn from_youtube_url(temp_path: &PathBuf, url: &str) -> Result<Self, TrackError> {
         // URLを確認
         let video_options = VideoOptions {
@@ -35,10 +38,15 @@ impl Track {
         };
 
         // 動画情報を取得
-        let video_detail = match video.get_info().await {
+        let video_detail = match video
+            .get_info()
+            .instrument(info_span!("Get Youtube video detail"))
+            .await
+        {
             Ok(v) => v.video_details,
-            Err(_) => {
+            Err(e) => {
                 // 動画情報が取得できなかった
+                error!("{:?}", e);
                 return Err(TrackError::FailedToRetrieveInfo);
             }
         };
@@ -54,9 +62,14 @@ impl Track {
         let file_name = format!("{}.mp3", video_detail.video_id);
         let temp_path = temp_path.join(file_name);
 
-        match video.download(&temp_path).await {
+        match video
+            .download(&temp_path)
+            .instrument(info_span!("Download Youtube video"))
+            .await
+        {
             Err(e) => {
                 // ダウンロードに失敗
+                error!("{:?}", e);
                 return Err(TrackError::FailedToDownload);
             }
             _ => {}

@@ -1,4 +1,5 @@
 use super::track::Track;
+use tracing::{error, info, info_span};
 
 #[derive(Debug)]
 pub(crate) struct PlayList {
@@ -11,6 +12,7 @@ impl PlayList {
     }
 
     pub fn add(&mut self, track: Track) {
+        info!("Add Track: {:?}", &track);
         self.songs.push(track);
     }
 }

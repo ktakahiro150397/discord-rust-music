@@ -4,7 +4,7 @@ use opentelemetry_otlp::WithExportConfig;
 use poise::serenity_prelude as serenity;
 use std::env;
 use std::time::Duration;
-use tracing::{error, info, info_span};
+use tracing::{debug, error, info, info_span, trace};
 use tracing::{event, span, Level};
 use tracing_futures::Instrument;
 use tracing_subscriber::fmt::time::ChronoLocal;
@@ -18,99 +18,19 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 
 #[tokio::main]
 async fn main() {
-    // Initialize Tracing
-    // tracing_subscriber::fmt()
-    //     .with_max_level(Level::DEBUG)
-    //     .with_timer(ChronoLocal::rfc_3339())
-    //     .with_file(true)
-    //     .with_line_number(true)
-    //     .with_thread_ids(true)
-    //     .with_thread_names(true)
-    //     .init(); // 1. set Subscriber
-
-    // event!(Level::INFO, "Event_1"); // 2. log Event_1
-    // let _span1 = span!(Level::INFO, "Span_1").entered(); // 3. enter Span_1
-    // event!(Level::INFO, "Event_2"); // 4. log Event_2
-    // let span2 = span!(Level::INFO, "Span_2").entered(); // 5. enter Span_2
-    // event!(Level::INFO, "Event_3"); // 6. log Event_3
-    // span2.exit(); // 7. exit Span_2
-
-    // event!(Level::TRACE, "trace");
-    // event!(Level::DEBUG, "debug");
-    // event!(Level::INFO, "info");
-    // event!(Level::WARN, "warn");
-    // event!(Level::ERROR, "error");
-
-    // foo();
-
-    // let test = Test {
-    //     f1: "Hello".to_string(),
-    //     f2: 42,
-    //     f3: Some(42),
-    // };
-    // let test2 = Test {
-    //     f1: "World".to_string(),
-    //     f2: 42,
-    //     f3: None,
-    // };
-    // event!(Level::DEBUG, test.f1, test.f2, test.f3); //フィールドを個別に出力
-
-    // event!(Level::DEBUG, ?test); //フィールドを一括出力
-    // event!(Level::DEBUG, ?test2); //フィールドを一括出力2
-    // event!(Level::DEBUG, ?test, ?test2); //まとめて出力できる
-
-    // foo2(9999);
-
     dotenvy::dotenv().expect(".env file not found!");
 
+    // Initialize Tracing
     let otel_endpoint = std::env::var("OTEL_ENDPOINT").unwrap_or("".to_string());
     println!("OTEL_ENDPOINT: {}", otel_endpoint);
-
     init_tracing(&otel_endpoint);
 
-    let version = env!("CARGO_PKG_VERSION");
-
-    start()
-        .instrument(info_span!("Straylight", version = version))
-        .await;
-
-    foo();
-    foo2(98);
-
-    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-
-    opentelemetry::global::shutdown_tracer_provider();
-
     // Launch
-    // Straylight::run_test().await;
-}
+    Straylight::run_test().await;
 
-async fn start() {
-    let user = "ymgyt";
-
-    operation().instrument(info_span!("auth", %user)).await;
-    operation_2().instrument(info_span!("db")).await;
-
-    info!(
-        ops = "xxx",
-        counter.ops_count = 999,
-        "successfully completed"
-    );
-}
-
-async fn operation() {
-    // trace
-    // https://docs.rs/tracing-opentelemetry/latest/tracing_opentelemetry/struct.MetricsLayer.html#usage
-    info!(
-        ops = "xxx",
-        counter.ops_count = 10,
-        "successfully completed"
-    );
-}
-
-async fn operation_2() {
-    info!(arg = "xyz", "fetch resources...");
-    error!("something went wrong");
+    // Shutdown
+    tokio::time::sleep(Duration::from_secs(5)).await;
+    opentelemetry::global::shutdown_tracer_provider();
 }
 
 fn build_metrics_controller(otel_endpoint: &str) -> BasicController {
@@ -163,30 +83,22 @@ fn init_tracing(otel_endpoint: &str) {
         .init();
 }
 
-#[tracing::instrument]
-fn foo() {
-    //let _span3 = span!(Level::INFO, "Span_3").entered(); // 8. enter Span_3
-    event!(Level::INFO, "Event_4"); // 9. log Event_4
-}
-
-#[tracing::instrument]
-fn foo2(arg: i32) {
-    //let _span3 = span!(Level::INFO, "Span_3").entered(); // 8. enter Span_3
-    println!("arg: {}", arg);
-    event!(Level::INFO, "arg output!"); // 9. log Event_4
-}
-
-#[derive(Debug)]
-struct Test {
-    f1: String,
-    f2: i32,
-    f3: Option<i32>,
-}
-
 struct Straylight {}
 
 impl Straylight {
+    #[tracing::instrument]
     async fn run_test() {
+        let version = env!("CARGO_PKG_VERSION");
+        info!("Starting Rust Music Bot v{} / run_test", version);
+
+        let rust_log = std::env::var("RUST_LOG").unwrap_or("info".to_string());
+        info!("RUST_LOG: {}", rust_log);
+
+        // trace!("trace message");
+        // info!("info message");
+        // debug!("debug message");
+        // error!("error message");
+
         let temp_path = std::path::PathBuf::from("temp");
         let mut playlist = playlist::playlist::PlayList::new();
 
@@ -194,18 +106,31 @@ impl Straylight {
             &temp_path,
             "https://www.youtube.com/watch?v=pPoIneB_KLI&list=RDpPoIneB_KLI",
         )
+        .instrument(info_span!("get track"))
         .await
         {
             Ok(t) => t,
             Err(e) => {
-                println!("Error: {}", e);
+                error!("{}", e);
                 return;
             }
         };
-
         playlist.add(track);
 
-        dbg!(playlist);
+        let track = match playlist::track::Track::from_youtube_url(
+            &temp_path,
+            "https://www.youtube.com/watch?v=abcdef",
+        )
+        .instrument(info_span!("get track"))
+        .await
+        {
+            Ok(t) => t,
+            Err(e) => {
+                error!("{}", e);
+                return;
+            }
+        };
+        playlist.add(track);
     }
 
     async fn run() {
