@@ -1,4 +1,5 @@
 use rusty_ytdl::{Video, VideoOptions, VideoSearchOptions};
+use std::env::current_dir;
 use std::fmt;
 use std::path::PathBuf;
 
@@ -21,13 +22,11 @@ impl Track {
 
     pub async fn from_youtube_url(temp_path: &PathBuf, url: &str) -> Result<Self, TrackError> {
         // URLを確認
-        let video = match Video::new_with_options(
-            url,
-            VideoOptions {
-                filter: VideoSearchOptions::Audio,
-                ..Default::default()
-            },
-        ) {
+        let video_options = VideoOptions {
+            filter: VideoSearchOptions::Audio,
+            ..Default::default()
+        };
+        let video = match Video::new_with_options(url, video_options) {
             Ok(v) => v,
             Err(_) => {
                 // URLが見つからなかった
@@ -45,8 +44,18 @@ impl Track {
         };
 
         // ダウンロード
-        match video.download(temp_path).await {
-            Err(_) => {
+        let current = current_dir().expect("failed to get current dir");
+        let temp_path = current.join(temp_path);
+
+        if !temp_path.exists() {
+            std::fs::create_dir(temp_path.clone()).unwrap();
+        }
+
+        let file_name = format!("{}.mp3", video_detail.video_id);
+        let temp_path = temp_path.join(file_name);
+
+        match video.download(&temp_path).await {
+            Err(e) => {
                 // ダウンロードに失敗
                 return Err(TrackError::FailedToDownload);
             }
