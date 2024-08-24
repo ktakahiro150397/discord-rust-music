@@ -10,7 +10,7 @@ use tracing::Level;
 use std::env;
 use std::error;
 use std::time::Duration;
-use tracing::{debug, error, info, info_span, trace};
+use tracing::{debug, error, info, info_span, trace, warn};
 use tracing_futures::Instrument;
 use tracing_subscriber::fmt::time::ChronoLocal;
 
@@ -19,6 +19,7 @@ use super::super::playlist::track;
 
 /// ユーザーのアカウント作成日時を表示します。
 #[poise::command(slash_command, prefix_command, category = "Test")]
+#[tracing::instrument(name = "command_age", fields(category = "Test"), skip(ctx))]
 pub(crate) async fn age(
     ctx: Context<'_>,
     #[description = "Selected user"] user: Option<serenity::User>,
@@ -62,7 +63,7 @@ pub(crate) async fn download(
     let video = match Video::new_with_options(&url, video_options) {
         Ok(v) => v,
         Err(e) => {
-            error!("{}", e);
+            warn!("{}", e);
 
             let content = "指定されたURLの動画は見つかりませんでした...";
             let reply = CreateReply::default().content(content);
@@ -74,7 +75,7 @@ pub(crate) async fn download(
     let details = match video.get_info().instrument(info_span!("get_info")).await {
         Ok(d) => d.video_details,
         Err(e) => {
-            error!("{}", e);
+            warn!("{}", e);
 
             let content = format!("指定されたURLの動画は見つかりませんでした...");
             let reply = CreateReply::default().content(content);
@@ -110,6 +111,7 @@ pub(crate) async fn download(
 
 /// プレイリストインスタンステスト
 #[poise::command(slash_command, category = "Test")]
+#[tracing::instrument(name = "command_playlist", fields(category = "Test"), skip(ctx))]
 pub(crate) async fn playlist(ctx: Context<'_>) -> Result<(), Error> {
     // プレイリストを作成
     let mut playlist = playlist::PlayList::new();
