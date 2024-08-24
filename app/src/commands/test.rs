@@ -1,8 +1,18 @@
 use crate::{Context, Error};
+use opentelemetry::sdk::export::trace;
+use opentelemetry::trace::Tracer;
 // use async_std::task;
 use poise::{serenity_prelude as serenity, CreateReply};
 use rusty_ytdl::{Video, VideoOptions, VideoSearchOptions};
+use tracing::span;
+use tracing::Level;
 // use std::time::Duration;
+use std::env;
+use std::error;
+use std::time::Duration;
+use tracing::{debug, error, info, info_span, trace};
+use tracing_futures::Instrument;
+use tracing_subscriber::fmt::time::ChronoLocal;
 
 use super::super::playlist::playlist;
 use super::super::playlist::track;
@@ -33,46 +43,73 @@ pub(crate) async fn download(
     ctx: Context<'_>,
     #[description = "ダウンロードするURL"] url: String,
 ) -> Result<(), Error> {
-    // 応答を遅らせる
-    ctx.defer().await?;
+    // Start a new span for this command
+    let span = span!(Level::INFO, "download_command");
 
-    let message = ctx
-        .say(format!("Downloading from {}...", url))
-        .await?
-        .clone();
+    {
+        let _enter = span.enter();
 
-    let video_options = VideoOptions {
-        filter: VideoSearchOptions::Audio,
-        ..Default::default()
-    };
+        info!("Download URL {}", url);
+        info!("1");
 
-    let video = match Video::new_with_options(url, video_options) {
-        Ok(v) => v,
-        Err(_) => {
-            let content = "指定されたURLの動画は見つかりませんでした...";
-            let reply = CreateReply::default().content(content);
-            message.edit(ctx, reply).await?;
-            return Ok(());
+        // 応答を遅らせる
+        ctx.defer().await?;
+
+        info!("2");
+
+        let message = ctx
+            .say(format!("Downloading from {}...", url))
+            .await?
+            .clone();
+        info!("3");
+
+        let video_options = VideoOptions {
+            filter: VideoSearchOptions::Audio,
+            ..Default::default()
+        };
+        info!("4");
+
+        let video = match Video::new_with_options(url, video_options) {
+            Ok(v) => v,
+            Err(e) => {
+                error!("{}", e);
+
+                let content = "指定されたURLの動画は見つかりませんでした...";
+                let reply = CreateReply::default().content(content);
+                message.edit(ctx, reply).await?;
+                return Ok(());
+            }
+        };
+        info!("5");
+
+        let details = video.get_info().await.unwrap().video_details;
+
+        let folder = std::path::Path::new("temp");
+        if !folder.exists() {
+            std::fs::create_dir(folder).unwrap();
+            info!("Create folder : {}", folder.to_str().unwrap());
         }
-    };
+        info!("6");
 
-    let details = video.get_info().await.unwrap().video_details;
-    println!("{:?}", details);
+        let file_name = format!("temp/{}.mp3", details.video_id);
+        let path = std::path::Path::new(&file_name);
+        video
+            .download(path)
+            .instrument(info_span!("download_youtube"))
+            .await
+            .unwrap();
+        info!("Downloaded {:?}", path.to_str().unwrap());
+        info!("7");
 
-    let folder = std::path::Path::new("temp");
-    if !folder.exists() {
-        std::fs::create_dir(folder).unwrap();
+        let reply = CreateReply::default()
+            .content(format!("Video downloaded {:?}", path.to_str().unwrap()));
+        message.edit(ctx, reply).await?;
+        info!("8");
+
+        drop(_enter);
+
+        Ok(())
     }
-
-    let file_name = format!("temp/{}.mp3", details.video_id);
-    let path = std::path::Path::new(&file_name);
-    video.download(path).await.unwrap();
-
-    let reply =
-        CreateReply::default().content(format!("Video downloaded {:?}", path.to_str().unwrap()));
-    message.edit(ctx, reply).await?;
-
-    Ok(())
 }
 
 /// プレイリストインスタンステスト
@@ -102,12 +139,12 @@ pub(crate) async fn playlist(ctx: Context<'_>) -> Result<(), Error> {
             return Ok(());
         }
     };
-    println!("{:?}", track);
+    trace!("{:?}", track);
 
     // トラック追加
     playlist.add(track);
 
-    println!("{:?}", playlist);
+    trace!("{:?}", playlist);
 
     ctx.say(format!("Title is {}", playlist.songs[1].title))
         .await?;

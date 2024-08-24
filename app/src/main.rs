@@ -29,7 +29,7 @@ async fn main() {
     Straylight::run_test().await;
 
     // Shutdown
-    tokio::time::sleep(Duration::from_secs(5)).await;
+    tokio::time::sleep(Duration::from_secs(30)).await;
     opentelemetry::global::shutdown_tracer_provider();
 }
 
@@ -86,8 +86,10 @@ fn init_tracing(otel_endpoint: &str) {
 struct Straylight {}
 
 impl Straylight {
-    #[tracing::instrument]
     async fn run_test() {
+        let span = span!(Level::INFO, "run_test_span");
+        let _enter = span.enter();
+
         let version = env!("CARGO_PKG_VERSION");
         info!("Starting Rust Music Bot v{} / run_test", version);
 
@@ -133,8 +135,13 @@ impl Straylight {
         playlist.add(track);
     }
 
+    #[tracing::instrument]
     async fn run() {
-        dotenv().expect(".env file not found!");
+        let version = env!("CARGO_PKG_VERSION");
+        info!("Starting Rust Music Bot v{}", version);
+
+        let rust_log = std::env::var("RUST_LOG").unwrap_or("info".to_string());
+        info!("RUST_LOG: {}", rust_log);
 
         let token = std::env::var("DISCORD_TOKEN").expect("DISCORD_TOKEN not found in environment");
         let intents = serenity::GatewayIntents::non_privileged();
@@ -167,6 +174,11 @@ impl Straylight {
             .framework(framework)
             .await;
 
-        client.unwrap().start().await.unwrap();
+        client
+            .unwrap()
+            .start()
+            .instrument(info_span!("serenity_client"))
+            .await
+            .unwrap();
     }
 }
