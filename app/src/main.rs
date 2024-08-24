@@ -26,7 +26,7 @@ async fn main() {
     init_tracing(&otel_endpoint);
 
     // Launch
-    Straylight::run_test().await;
+    Straylight::run().await;
 
     // Shutdown
     tokio::time::sleep(Duration::from_secs(30)).await;
@@ -135,8 +135,10 @@ impl Straylight {
         playlist.add(track);
     }
 
-    #[tracing::instrument]
     async fn run() {
+        let span = span!(Level::INFO, "run_app");
+        let _enter = span.enter();
+
         let version = env!("CARGO_PKG_VERSION");
         info!("Starting Rust Music Bot v{}", version);
 

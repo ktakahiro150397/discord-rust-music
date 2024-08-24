@@ -39,77 +39,73 @@ pub(crate) async fn test(ctx: Context<'_>) -> Result<(), Error> {
 
 /// 指定のURLからYoutubeデータをダウンロードします。
 #[poise::command(slash_command, category = "Test")]
+#[tracing::instrument(name = "command_download", fields(category = "Test"), skip(ctx))]
 pub(crate) async fn download(
     ctx: Context<'_>,
     #[description = "ダウンロードするURL"] url: String,
 ) -> Result<(), Error> {
-    // Start a new span for this command
-    let span = span!(Level::INFO, "download_command");
+    info!("Downloading URL {}...", url);
 
-    {
-        let _enter = span.enter();
+    // 応答を遅らせる
+    ctx.defer().instrument(info_span!("defer")).await?;
 
-        info!("Download URL {}", url);
-        info!("1");
+    let message = ctx
+        .say(format!("Downloading from {}...", url))
+        .await?
+        .clone();
 
-        // 応答を遅らせる
-        ctx.defer().await?;
+    let video_options = VideoOptions {
+        filter: VideoSearchOptions::Audio,
+        ..Default::default()
+    };
 
-        info!("2");
+    let video = match Video::new_with_options(&url, video_options) {
+        Ok(v) => v,
+        Err(e) => {
+            error!("{}", e);
 
-        let message = ctx
-            .say(format!("Downloading from {}...", url))
-            .await?
-            .clone();
-        info!("3");
-
-        let video_options = VideoOptions {
-            filter: VideoSearchOptions::Audio,
-            ..Default::default()
-        };
-        info!("4");
-
-        let video = match Video::new_with_options(url, video_options) {
-            Ok(v) => v,
-            Err(e) => {
-                error!("{}", e);
-
-                let content = "指定されたURLの動画は見つかりませんでした...";
-                let reply = CreateReply::default().content(content);
-                message.edit(ctx, reply).await?;
-                return Ok(());
-            }
-        };
-        info!("5");
-
-        let details = video.get_info().await.unwrap().video_details;
-
-        let folder = std::path::Path::new("temp");
-        if !folder.exists() {
-            std::fs::create_dir(folder).unwrap();
-            info!("Create folder : {}", folder.to_str().unwrap());
+            let content = "指定されたURLの動画は見つかりませんでした...";
+            let reply = CreateReply::default().content(content);
+            message.edit(ctx, reply).await?;
+            return Ok(());
         }
-        info!("6");
+    };
 
-        let file_name = format!("temp/{}.mp3", details.video_id);
-        let path = std::path::Path::new(&file_name);
-        video
-            .download(path)
-            .instrument(info_span!("download_youtube"))
-            .await
-            .unwrap();
-        info!("Downloaded {:?}", path.to_str().unwrap());
-        info!("7");
+    let details = match video.get_info().instrument(info_span!("get_info")).await {
+        Ok(d) => d.video_details,
+        Err(e) => {
+            error!("{}", e);
 
-        let reply = CreateReply::default()
-            .content(format!("Video downloaded {:?}", path.to_str().unwrap()));
-        message.edit(ctx, reply).await?;
-        info!("8");
+            let content = format!("指定されたURLの動画は見つかりませんでした...");
+            let reply = CreateReply::default().content(content);
+            message.edit(ctx, reply).await?;
+            return Ok(());
+        }
+    };
 
-        drop(_enter);
-
-        Ok(())
+    let folder = std::path::Path::new("temp");
+    if !folder.exists() {
+        std::fs::create_dir(folder).unwrap();
+        info!("Create folder : {}", folder.to_str().unwrap());
     }
+
+    let file_name = format!("temp/{}.mp3", details.video_id);
+    let path = std::path::Path::new(&file_name);
+    video
+        .download(path)
+        .instrument(info_span!("download_youtube"))
+        .await
+        .unwrap();
+    info!("Downloaded {:?}", path.to_str().unwrap());
+
+    let reply = CreateReply::default().content(format!(
+        "Video downloaded! {} {:?}",
+        url,
+        path.to_str().unwrap()
+    ));
+    message.edit(ctx, reply).await?;
+
+    Ok(())
 }
 
 /// プレイリストインスタンステスト
