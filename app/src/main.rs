@@ -61,13 +61,21 @@ async fn main() {
 
     // foo2(9999);
 
-    init_tracing();
+    dotenvy::dotenv().expect(".env file not found!");
+
+    let otel_endpoint = std::env::var("OTEL_ENDPOINT").unwrap_or("".to_string());
+    println!("OTEL_ENDPOINT: {}", otel_endpoint);
+
+    init_tracing(&otel_endpoint);
 
     let version = env!("CARGO_PKG_VERSION");
 
     start()
         .instrument(info_span!("Straylight", version = version))
         .await;
+
+    foo();
+    foo2(98);
 
     tokio::time::sleep(std::time::Duration::from_secs(3)).await;
 
@@ -105,7 +113,7 @@ async fn operation_2() {
     error!("something went wrong");
 }
 
-fn build_metrics_controller() -> BasicController {
+fn build_metrics_controller(otel_endpoint: &str) -> BasicController {
     opentelemetry_otlp::new_pipeline()
         .metrics(
             opentelemetry::sdk::metrics::selectors::simple::histogram(Vec::new()),
@@ -115,33 +123,34 @@ fn build_metrics_controller() -> BasicController {
         .with_exporter(
             opentelemetry_otlp::new_exporter()
                 .tonic()
-                .with_endpoint("http://localhost:4317"),
+                .with_endpoint(otel_endpoint),
         )
         .build()
         .expect("Failed to build metrics controller")
 }
 
-fn init_tracing() {
+fn init_tracing(otel_endpoint: &str) {
     let tracer = opentelemetry_otlp::new_pipeline()
         .tracing()
         .with_exporter(
             opentelemetry_otlp::new_exporter()
                 .tonic()
-                .with_endpoint("http://localhost:4317"),
+                .with_endpoint(otel_endpoint),
         )
         .with_trace_config(
             opentelemetry::sdk::trace::config()
                 .with_sampler(opentelemetry::sdk::trace::Sampler::AlwaysOn)
                 .with_id_generator(opentelemetry::sdk::trace::RandomIdGenerator::default())
                 .with_resource(opentelemetry::sdk::Resource::new(vec![
-                    opentelemetry::KeyValue::new("service.name", "sample-app"),
+                    opentelemetry::KeyValue::new("service.name", "rust-music-bot"),
                 ])),
         )
         .install_batch(opentelemetry::runtime::Tokio)
         .expect("Not running in tokio runtime");
 
     let otel_trace_layer = tracing_opentelemetry::layer().with_tracer(tracer);
-    let otel_metrics_layer = tracing_opentelemetry::MetricsLayer::new(build_metrics_controller());
+    let otel_metrics_layer =
+        tracing_opentelemetry::MetricsLayer::new(build_metrics_controller(&otel_endpoint));
 
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::util::SubscriberInitExt;

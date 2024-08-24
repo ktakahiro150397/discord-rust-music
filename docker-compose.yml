@@ -74,6 +74,7 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.5.2
     volumes:
       - certs:/usr/share/elasticsearch/config/certs
+      - es-data:/usr/share/elasticsearch/data
     ports:
       - "9200:9200"
     environment:
@@ -159,5 +160,6 @@ services:
       - "16686:16686" # UI
 
 volumes:
+  es-data:
   certs:
     driver: local
