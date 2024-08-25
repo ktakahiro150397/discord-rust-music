@@ -7,10 +7,6 @@ use tracing_futures::Instrument;
 
 use serenity::async_trait;
 // Event related imports to detect track creation failures.
-use serenity::{
-    framework::standard::{macros::command, Args, CommandResult},
-    model::prelude::Message,
-};
 use songbird::events::{Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent};
 
 use super::super::playlist::playlist;
@@ -242,7 +238,7 @@ pub(crate) async fn leave(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-/// あなたがいるボイスチャンネルに接続します。
+/// 曲を追加します。
 #[poise::command(slash_command, category = "Test")]
 #[tracing::instrument(name = "command_play", fields(category = "Test"), skip(ctx))]
 pub(crate) async fn play(ctx: Context<'_>) -> Result<(), Error> {
@@ -297,6 +293,7 @@ pub(crate) async fn play(ctx: Context<'_>) -> Result<(), Error> {
 
             // 再生処理
             let mut driver = songbird::driver::Driver::default();
+
             // let source = songbird::ffmpeg("temp/CCWrCIfln3Q.mp3")
             //     .await
             //     .expect("Failed to create source.");
@@ -304,8 +301,20 @@ pub(crate) async fn play(ctx: Context<'_>) -> Result<(), Error> {
 
             info!("Playing {:?}", source);
 
-            let track_handle = handler.play(Track::from(source));
+            let track = Track::from(source);
+            //let track_handle = driver.enqueue(track).await;
+            //track_handle.play().expect("Failed to play track.");
+
+            //let track_handle = handler.play(Track::from(source));
+            let track_handle = handler.enqueue(track).await;
             info!("TrackHandle: {:?}", track_handle);
+
+            let queue_len = handler.queue().len();
+
+            let _ = ctx
+                .say(format!("Queue length is {}", queue_len))
+                .await?
+                .clone();
 
             // let handle = driver.play_only(Track::from(source));
 
@@ -314,6 +323,40 @@ pub(crate) async fn play(ctx: Context<'_>) -> Result<(), Error> {
             //handler.play_input("temp/AsnMofieWkQ.mp3");
         }
         _ => (),
+    }
+
+    Ok(())
+}
+
+/// 再生中の曲情報を取得します。
+#[poise::command(slash_command, category = "Test")]
+#[tracing::instrument(name = "command_info", fields(category = "Test"), skip(ctx))]
+pub(crate) async fn info(ctx: Context<'_>) -> Result<(), Error> {
+    // 応答を遅らせる
+    ctx.defer().instrument(info_span!("defer")).await?;
+
+    let guild_id = ctx.guild().unwrap().id;
+
+    // songbirdコンテキストを取得
+    let manager = songbird::get(ctx.serenity_context())
+        .await
+        .expect("Songbird Voice client placed in at initialisation.")
+        .clone();
+
+    if let Some(handler_lock) = manager.get(guild_id) {
+        let handler = handler_lock.lock().await;
+
+        let queue_len = handler.queue().len();
+
+        info!("Queue length: {}", queue_len);
+        let _ = ctx
+            .say(format!("Current queue length is {}!", queue_len))
+            .await?
+            .clone();
+
+        for elem in handler.queue().current_queue() {
+            info!("Track: {:?}", elem);
+        }
     }
 
     Ok(())

@@ -161,6 +161,7 @@ impl Straylight {
                     commands::test::join(),
                     commands::test::play(),
                     commands::test::leave(),
+                    commands::test::info(),
                     commands::utility::register(),
                     commands::utility::help(),
                 ],
