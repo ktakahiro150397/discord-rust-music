@@ -1,9 +1,8 @@
 use rusty_ytdl::{Video, VideoOptions, VideoSearchOptions};
-use serenity::model::error;
 use std::env::current_dir;
 use std::fmt;
 use std::path::PathBuf;
-use tracing::{error, info_span, trace, trace_span, Instrument};
+use tracing::{error, info_span, Instrument};
 
 /// キューに追加されるトラック情報
 #[derive(Debug)]

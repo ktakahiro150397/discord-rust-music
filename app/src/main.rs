@@ -1,13 +1,12 @@
-use dotenvy::dotenv;
 use opentelemetry::sdk::metrics::controllers::BasicController;
 use opentelemetry_otlp::WithExportConfig;
 use poise::serenity_prelude as serenity;
+use songbird::SerenityInit;
 use std::env;
 use std::time::Duration;
-use tracing::{debug, error, info, info_span, trace};
-use tracing::{event, span, Level};
+use tracing::{error, info, info_span};
+use tracing::{span, Level};
 use tracing_futures::Instrument;
-use tracing_subscriber::fmt::time::ChronoLocal;
 
 mod commands;
 mod playlist;
@@ -135,6 +134,7 @@ impl Straylight {
         playlist.add(track);
     }
 
+    #[tracing::instrument()]
     async fn run() {
         let span = span!(Level::INFO, "run_app");
         let _enter = span.enter();
@@ -174,6 +174,7 @@ impl Straylight {
 
         let client = serenity::ClientBuilder::new(token, intents)
             .framework(framework)
+            .register_songbird()
             .await;
 
         client

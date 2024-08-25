@@ -1,5 +1,5 @@
 use super::track::Track;
-use tracing::{error, info, info_span};
+use tracing::info;
 
 #[derive(Debug)]
 pub(crate) struct PlayList {
