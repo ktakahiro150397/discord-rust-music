@@ -134,7 +134,6 @@ impl Straylight {
         playlist.add(track);
     }
 
-    #[tracing::instrument()]
     async fn run() {
         let span = span!(Level::INFO, "run_app");
         let _enter = span.enter();
@@ -146,7 +145,11 @@ impl Straylight {
         info!("RUST_LOG: {}", rust_log);
 
         let token = std::env::var("DISCORD_TOKEN").expect("DISCORD_TOKEN not found in environment");
-        let intents = serenity::GatewayIntents::non_privileged();
+
+        //let intents = serenity::GatewayIntents::non_privileged();
+        let intents = serenity::GatewayIntents::non_privileged()
+            | serenity::GatewayIntents::MESSAGE_CONTENT
+            | serenity::GatewayIntents::GUILD_VOICE_STATES;
 
         let framework = poise::Framework::builder()
             .options(poise::FrameworkOptions {
@@ -155,6 +158,9 @@ impl Straylight {
                     commands::test::test(),
                     commands::test::download(),
                     commands::test::playlist(),
+                    commands::test::join(),
+                    commands::test::play(),
+                    commands::test::leave(),
                     commands::utility::register(),
                     commands::utility::help(),
                 ],
@@ -167,6 +173,7 @@ impl Straylight {
             .setup(|ctx, _ready, framework| {
                 Box::pin(async move {
                     poise::builtins::register_globally(ctx, &framework.options().commands).await?;
+                    //poise::builtins::register_application_commands(ctx, false).await?;
                     Ok(Data {})
                 })
             })
