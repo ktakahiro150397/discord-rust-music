@@ -52,3 +52,32 @@ pub mod no_generics {
         largest
     }
 }
+
+pub mod lifetime {
+    // /// x,yのいずれかを返すが、そのライフタイムが不明
+    // pub fn longest(x: &str, y: &str) -> &str {
+    //     if x.len() > y.len() {
+    //         x
+    //     } else {
+    //         y
+    //     }
+    // }
+
+    /// x,yはいずれも同じ期間だけ生存することを示す
+    /// 'aはランタイムでx,yのうち短いライフタイムになる
+    pub fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+        if x.len() > y.len() {
+            x
+        } else {
+            y
+        }
+    }
+
+    pub fn longest3<'a>(x: &'a str, y: &'a str) -> &'a str {
+        if x.len() > y.len() {
+            x
+        } else {
+            y
+        }
+    }
+}

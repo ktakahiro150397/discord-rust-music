@@ -1,4 +1,5 @@
 use opentelemetry::sdk::metrics::controllers::BasicController;
+use rust_lang::lifetime;
 use std::env;
 use std::time::Duration;
 use tracing::{error, info, info_span};
@@ -82,32 +83,31 @@ struct Straylight {}
 
 impl Straylight {
     async fn run_test() {
-        let version = env!("CARGO_PKG_VERSION");
-        println!("Starting Rust Music Bot v{} / run_test", version);
+        let r;
 
-        let rust_log = std::env::var("RUST_LOG").unwrap_or("info".to_string());
-        println!("RUST_LOG: {}", rust_log);
+        {
+            let x = 5;
+            // r = x;
+            // println!("x={}", x);
 
-        let test_list = vec![1, 2, 3, 4, 5];
-        let largest = rust_lang::no_generics::largest_i32(&test_list);
-        println!("Largest i32: {}", largest);
+            // r = &x; //エラー : 借用チェッカーがxのライフタイムが短いことを検出している
+        }
+        r = 3;
+        println!("r={}", r);
 
-        let largest = rust_lang::generics::largest(&test_list);
-        println!("Largest i32 generics: {}", largest);
+        let str_a = "abcd";
+        let str_b = "xyz";
 
-        let test_list = vec!['1', 'a'];
-        let largest_char = rust_lang::no_generics::largest_char(&test_list);
-        println!("Largest char: {}", largest_char);
-        println!("Data: {:?}", test_list);
+        let longer = lifetime::longest(str_a, str_b);
+        println!("longer={}", longer);
 
-        let largest = rust_lang::generics::largest(&test_list);
-        println!("Largest i32 generics: {}", largest);
-        println!("Data: {:?}", test_list);
-
-        let largest = rust_lang::generics::largest_ref(&test_list);
-        println!("Largest i32 generics ref: {}", largest);
-        println!("Data: {:?}", test_list);
-
-        println!("Program end");
+        let str_c = String::from("efgh");
+        let longer2;
+        {
+            let str_d = String::from("ijkl");
+            longer2 = lifetime::longest(str_c.as_str(), str_d.as_str()); //a'はstr_dのライフタイムになる
+            println!("longer={}", longer2);
+        }
+        // println!("longer={}", longer2); // str_dのライフタイムが終わっているのでエラー
     }
 }
